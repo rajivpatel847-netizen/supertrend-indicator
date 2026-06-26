@@ -1,7 +1,7 @@
 //@version=5
 indicator("Supertrend Indicator - Indian Stock Market", shorttitle="Supertrend", overlay=true)
 
-// Input Parameters - FIXED VERSION
+// Input Parameters
 length = input.int(10, "Period", minval=1, maxval=50)
 multiplier = input.float(3.0, "Multiplier", minval=0.1, maxval=10.0)
 
@@ -18,13 +18,13 @@ hl2 = (high + low) / 2
 basic_upper_band = hl2 + multiplier * atr
 basic_lower_band = hl2 - multiplier * atr
 
-// Calculate Final Bands
-final_upper_band = basic_upper_band < nz(final_upper_band[1]) or close[1] > nz(final_upper_band[1]) ? basic_upper_band : nz(final_upper_band[1])
-final_lower_band = basic_lower_band > nz(final_lower_band[1]) or close[1] < nz(final_lower_band[1]) ? basic_lower_band : nz(final_lower_band[1])
+// Calculate Final Bands with proper variable scope
+final_upper_band = na(final_upper_band[1]) ? basic_upper_band : (basic_upper_band < final_upper_band[1] or close[1] > final_upper_band[1] ? basic_upper_band : final_upper_band[1])
+final_lower_band = na(final_lower_band[1]) ? basic_lower_band : (basic_lower_band > final_lower_band[1] or close[1] < final_lower_band[1] ? basic_lower_band : final_lower_band[1])
 
 // Determine Supertrend
 supertrend = na
-supertrend := na(supertrend[1]) ? hl2 : (supertrend[1] == nz(final_upper_band[1]) ? (close <= nz(final_upper_band[1]) ? final_upper_band : final_lower_band) : (close >= nz(final_lower_band[1]) ? final_lower_band : final_upper_band))
+supertrend := na(supertrend[1]) ? hl2 : (supertrend[1] == final_upper_band[1] ? (close <= final_upper_band[1] ? final_upper_band : final_lower_band) : (close >= final_lower_band[1] ? final_lower_band : final_upper_band))
 
 // Plot
 plot(supertrend, "Supertrend", color=supertrend > hl2 ? color.red : color.green, linewidth=2)
