@@ -23,12 +23,12 @@ supertrend := nz(supertrend[1], hl) == nz(final_ub[1], final_ub) ? close <= nz(f
 buy = ta.crossover(close, supertrend)
 sell = ta.crossunder(close, supertrend)
 
-plot(supertrend, "ST", color=supertrend > hl ? color.red : color.green, linewidth=2)
-plot(final_ub, "UB", color=color.red, linewidth=1, style=plot.style_dashed)
-plot(final_lb, "LB", color=color.green, linewidth=1, style=plot.style_dashed)
+plot(supertrend, "Supertrend", color=supertrend > hl ? color.red : color.green, linewidth=2)
+plot(final_ub, "Upper Band", color=color.red, linewidth=1, style=plot.style_dashed)
+plot(final_lb, "Lower Band", color=color.green, linewidth=1, style=plot.style_dashed)
 
-plotshape(buy, "Buy", shape.labelup, location.belowbar, color.green, text="BUY")
-plotshape(sell, "Sell", shape.labeldown, location.abovebar, color.red, text="SELL")
+plotshape(buy, "Buy Signal", shape=shape.labelup, location=location.belowbar, color=color.green, text="BUY")
+plotshape(sell, "Sell Signal", shape=shape.labeldown, location=location.abovebar, color=color.red, text="SELL")
 
-alertcondition(buy, "Buy", "Supertrend Buy")
-alertcondition(sell, "Sell", "Supertrend Sell")
+alertcondition(buy, title="Buy", message="Supertrend Buy")
+alertcondition(sell, title="Sell", message="Supertrend Sell")
