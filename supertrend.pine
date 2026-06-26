@@ -1,55 +1,42 @@
 //@version=5
-indicator("Supertrend Indicator", shorttitle="ST", overlay=true)
+indicator("Supertrend", shorttitle="ST", overlay=true)
 
-// Inputs
-period = input.int(10, title="Period", minval=1)
-multiplier = input.float(3.0, title="Multiplier", minval=0.1)
+// Input parameters
+len = input.int(10, minval=1)
+mult = input.float(3.0, minval=0.1)
 
-// Calculate HL2
-hl2 = (high + low) / 2
-
-// Calculate ATR
+// Calculate basic components
+hl = (high + low) / 2.0
 tr = math.max(high - low, math.max(math.abs(high - close[1]), math.abs(low - close[1])))
-atr = ta.sma(tr, period)
+atr_val = ta.sma(tr, len)
 
-// Upper and Lower Basic Bands
-upperBand = hl2 + multiplier * atr
-lowerBand = hl2 - multiplier * atr
+// Calculate basic bands
+basic_ub = hl + mult * atr_val
+basic_lb = hl - mult * atr_val
 
-// Final Bands (with var keyword for history)
-var upperBandF = na
-var lowerBandF = na
+// Final upper band
+final_ub = na
+final_ub := basic_ub < nz(final_ub[1], basic_ub) or close[1] > nz(final_ub[1], basic_ub) ? basic_ub : nz(final_ub[1], basic_ub)
 
-upperBandF := math.max(upperBand, nz(upperBandF[1], upperBand))
-lowerBandF := math.min(lowerBand, nz(lowerBandF[1], lowerBand))
+// Final lower band  
+final_lb = na
+final_lb := basic_lb > nz(final_lb[1], basic_lb) or close[1] < nz(final_lb[1], basic_lb) ? basic_lb : nz(final_lb[1], basic_lb)
 
-// Supertrend Direction
-var superTrend = na
-var trend = 1
+// Supertrend
+supertrend = na
+supertrend := nz(supertrend[1], hl) == nz(final_ub[1], final_ub) ? close <= nz(final_ub[1], final_ub) ? nz(final_ub[1], final_ub) : nz(final_lb[1], final_lb) : close >= nz(final_lb[1], final_lb) ? nz(final_lb[1], final_lb) : nz(final_ub[1], final_ub)
 
-if close > nz(upperBandF[1], upperBandF)
-    superTrend := lowerBandF
-    trend := 1
-else if close < nz(lowerBandF[1], lowerBandF)
-    superTrend := upperBandF
-    trend := -1
-else
-    superTrend := nz(superTrend[1], hl2)
-    trend := nz(trend[1], 1)
-
-// Signals
-buySignal = trend == 1 and trend[1] == -1
-sellSignal = trend == -1 and trend[1] == 1
+// Buy and Sell signals
+buy = ta.crossover(close, supertrend)
+sell = ta.crossunder(close, supertrend)
 
 // Plot
-plot(superTrend, title="Supertrend", color=trend == 1 ? color.green : color.red, linewidth=2)
-plot(upperBandF, title="Upper Band", color=color.red, linewidth=1, style=plot.style_dashed)
-plot(lowerBandF, title="Lower Band", color=color.green, linewidth=1, style=plot.style_dashed)
+plot(supertrend, "Supertrend", color=supertrend > hl ? color.red : color.green, linewidth=2)
+plot(final_ub, "Upper", color=color.red, linewidth=1, style=plot.style_dashed)
+plot(final_lb, "Lower", color=color.green, linewidth=1, style=plot.style_dashed)
 
-// Plot Signals
-plotshape(buySignal, title="Buy Signal", shape=shape.labelup, location=location.belowbar, color=color.green, text="BUY", size=size.small)
-plotshape(sellSignal, title="Sell Signal", shape=shape.labeldown, location=location.abovebar, color=color.red, text="SELL", size=size.small)
+plotshape(buy, "Buy", shape.labelup, location.belowbar, color.green, text="BUY")
+plotshape(sell, "Sell", shape.labeldown, location.abovebar, color.red, text="SELL")
 
-// Alerts
-alertcondition(buySignal, title="Supertrend Buy", message="Buy Signal - Supertrend Indicator")
-alertcondition(sellSignal, title="Supertrend Sell", message="Sell Signal - Supertrend Indicator")
+alertcondition(buy, "Buy", "Supertrend Buy")
+alertcondition(sell, "Sell", "Supertrend Sell")
