@@ -1,0 +1,43 @@
+//@version=5
+indicator("Supertrend Indicator - Indian Stock Market", shorttitle="Supertrend", overlay=true)
+
+// Input Parameters
+length = input(10, "Period", minval=1)
+multiplier = input(3.0, "Multiplier", minval=0.1)
+
+// Calculate ATR (Average True Range)
+high_low = high - low
+high_close = math.abs(high - close[1])
+low_close = math.abs(low - close[1])
+
+true_range = math.max(high_low, math.max(high_close, low_close))
+atr = ta.sma(true_range, length)
+
+// Calculate Basic Bands
+hl2 = (high + low) / 2
+basic_upper_band = hl2 + multiplier * atr
+basic_lower_band = hl2 - multiplier * atr
+
+// Calculate Final Bands
+final_upper_band = basic_upper_band < nz(final_upper_band[1]) or close[1] > nz(final_upper_band[1]) ? basic_upper_band : nz(final_upper_band[1])
+final_lower_band = basic_lower_band > nz(final_lower_band[1]) or close[1] < nz(final_lower_band[1]) ? basic_lower_band : nz(final_lower_band[1])
+
+// Determine Supertrend
+supertrend = na
+supertrend := na(supertrend[1]) ? hl2 : (supertrend[1] == nz(final_upper_band[1]) ? (close <= nz(final_upper_band[1]) ? final_upper_band : final_lower_band) : (close >= nz(final_lower_band[1]) ? final_lower_band : final_upper_band))
+
+// Plot
+plot(supertrend, "Supertrend", color=supertrend > hl2 ? color.red : color.green, linewidth=2)
+plot(final_upper_band, "Upper Band", color=color.red, linewidth=1, style=plot.style_dashed)
+plot(final_lower_band, "Lower Band", color=color.green, linewidth=1, style=plot.style_dashed)
+
+// Buy and Sell Signals
+buy_signal = ta.crossover(close, supertrend)
+sell_signal = ta.crossunder(close, supertrend)
+
+plotshape(buy_signal, "Buy Signal", shape.labelup, location.belowbar, color.new(color.green, 0), text="BUY", textcolor=color.white)
+plotshape(sell_signal, "Sell Signal", shape.labeldown, location.abovebar, color.new(color.red, 0), text="SELL", textcolor=color.white)
+
+// Alert
+alertcondition(buy_signal, title="Supertrend Buy", message="Buy Signal - Supertrend")
+alertcondition(sell_signal, title="Supertrend Sell", message="Sell Signal - Supertrend")
