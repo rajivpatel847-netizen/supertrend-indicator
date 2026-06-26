@@ -2,42 +2,40 @@
 indicator("Supertrend Indicator - Indian Stock Market", shorttitle="Supertrend", overlay=true)
 
 // Input Parameters
-length = input.int(10, "Period", minval=1, maxval=50)
-multiplier = input.float(3.0, "Multiplier", minval=0.1, maxval=10.0)
+period = input.int(10, title="ATR Period", minval=1)
+multiplier = input.float(3.0, title="ATR Multiplier", minval=0.1)
 
-// Calculate ATR (Average True Range)
-high_low = high - low
-high_close = math.abs(high - close[1])
-low_close = math.abs(low - close[1])
+// Calculate ATR
+tr = math.max(high - low, math.max(math.abs(high - close[1]), math.abs(low - close[1])))
+atr = ta.sma(tr, period)
 
-true_range = math.max(high_low, math.max(high_close, low_close))
-atr = ta.sma(true_range, length)
-
-// Calculate Basic Bands
+// Calculate hl2
 hl2 = (high + low) / 2
-basic_upper_band = hl2 + multiplier * atr
-basic_lower_band = hl2 - multiplier * atr
 
-// Calculate Final Bands with proper variable scope
-final_upper_band = na(final_upper_band[1]) ? basic_upper_band : (basic_upper_band < final_upper_band[1] or close[1] > final_upper_band[1] ? basic_upper_band : final_upper_band[1])
-final_lower_band = na(final_lower_band[1]) ? basic_lower_band : (basic_lower_band > final_lower_band[1] or close[1] < final_lower_band[1] ? basic_lower_band : final_lower_band[1])
+// Calculate basic bands
+basic_ub = hl2 + multiplier * atr
+basic_lb = hl2 - multiplier * atr
 
-// Determine Supertrend
-supertrend = na
-supertrend := na(supertrend[1]) ? hl2 : (supertrend[1] == final_upper_band[1] ? (close <= final_upper_band[1] ? final_upper_band : final_lower_band) : (close >= final_lower_band[1] ? final_lower_band : final_upper_band))
+// Calculate final bands
+final_ub = basic_ub < nz(final_ub[1]) or close[1] > nz(final_ub[1]) ? basic_ub : nz(final_ub[1])
+final_lb = basic_lb > nz(final_lb[1]) or close[1] < nz(final_lb[1]) ? basic_lb : nz(final_lb[1])
+
+// Determine supertrend
+st = na
+st := nz(st[1], hl2) == nz(final_ub[1]) ? close <= nz(final_ub[1]) ? nz(final_ub[1]) : nz(final_lb[1]) : close >= nz(final_lb[1]) ? nz(final_lb[1]) : nz(final_ub[1])
 
 // Plot
-plot(supertrend, "Supertrend", color=supertrend > hl2 ? color.red : color.green, linewidth=2)
-plot(final_upper_band, "Upper Band", color=color.red, linewidth=1, style=plot.style_dashed)
-plot(final_lower_band, "Lower Band", color=color.green, linewidth=1, style=plot.style_dashed)
+plot(st, color=st > hl2 ? color.red : color.green, linewidth=2, title="Supertrend")
+plot(final_ub, color=color.red, linewidth=1, style=plot.style_dashed, title="Upper Band")
+plot(final_lb, color=color.green, linewidth=1, style=plot.style_dashed, title="Lower Band")
 
-// Buy and Sell Signals
-buy_signal = ta.crossover(close, supertrend)
-sell_signal = ta.crossunder(close, supertrend)
+// Signals
+buy = ta.crossover(close, st)
+sell = ta.crossunder(close, st)
 
-plotshape(buy_signal, "Buy Signal", shape.labelup, location.belowbar, color.new(color.green, 0), text="BUY", textcolor=color.white)
-plotshape(sell_signal, "Sell Signal", shape.labeldown, location.abovebar, color.new(color.red, 0), text="SELL", textcolor=color.white)
+plotshape(buy, title="Buy Signal", shape=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), text="BUY", textcolor=color.white, size=size.small)
+plotshape(sell, title="Sell Signal", shape=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="SELL", textcolor=color.white, size=size.small)
 
-// Alert
-alertcondition(buy_signal, title="Supertrend Buy", message="Buy Signal - Supertrend")
-alertcondition(sell_signal, title="Supertrend Sell", message="Sell Signal - Supertrend")
+// Alerts
+alertcondition(buy, title="Supertrend Buy Signal", message="Buy Signal Generated")
+alertcondition(sell, title="Supertrend Sell Signal", message="Sell Signal Generated")
