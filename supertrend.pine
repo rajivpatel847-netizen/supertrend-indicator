@@ -1,41 +1,53 @@
 //@version=5
-indicator("Supertrend Indicator - Indian Stock Market", shorttitle="Supertrend", overlay=true)
+indicator("Supertrend Indicator", shorttitle="ST", overlay=true)
 
 // Input Parameters
-period = input.int(10, title="ATR Period", minval=1)
-multiplier = input.float(3.0, title="ATR Multiplier", minval=0.1)
+len = input.int(10, minval=1)
+mult = input.float(3.0, minval=0.1)
 
 // Calculate ATR
 tr = math.max(high - low, math.max(math.abs(high - close[1]), math.abs(low - close[1])))
-atr = ta.sma(tr, period)
+atr_val = ta.sma(tr, len)
 
 // Calculate hl2
 hl2 = (high + low) / 2
 
-// Calculate basic bands
-basic_ub = hl2 + multiplier * atr
-basic_lb = hl2 - multiplier * atr
+// Calculate bands
+basic_ub = hl2 + mult * atr_val
+basic_lb = hl2 - mult * atr_val
 
-// Calculate final bands
-final_ub = basic_ub < nz(final_ub[1]) or close[1] > nz(final_ub[1]) ? basic_ub : nz(final_ub[1])
-final_lb = basic_lb > nz(final_lb[1]) or close[1] < nz(final_lb[1]) ? basic_lb : nz(final_lb[1])
+// Initialize final bands on first bar
+final_ub = na
+final_lb = na
 
-// Determine supertrend
+if barstate.isfirst
+    final_ub := basic_ub
+    final_lb := basic_lb
+else
+    final_ub := basic_ub < final_ub[1] or close[1] > final_ub[1] ? basic_ub : final_ub[1]
+    final_lb := basic_lb > final_lb[1] or close[1] < final_lb[1] ? basic_lb : final_lb[1]
+
+// Supertrend calculation
 st = na
-st := nz(st[1], hl2) == nz(final_ub[1]) ? close <= nz(final_ub[1]) ? nz(final_ub[1]) : nz(final_lb[1]) : close >= nz(final_lb[1]) ? nz(final_lb[1]) : nz(final_ub[1])
+if barstate.isfirst
+    st := hl2
+else
+    if st[1] == final_ub[1]
+        st := close <= final_ub[1] ? final_ub : final_lb
+    else
+        st := close >= final_lb[1] ? final_lb : final_ub
 
 // Plot
-plot(st, color=st > hl2 ? color.red : color.green, linewidth=2, title="Supertrend")
-plot(final_ub, color=color.red, linewidth=1, style=plot.style_dashed, title="Upper Band")
-plot(final_lb, color=color.green, linewidth=1, style=plot.style_dashed, title="Lower Band")
+plot(st, color=st > hl2 ? color.red : color.green, linewidth=2)
+plot(final_ub, color=color.red, linewidth=1, style=plot.style_dashed)
+plot(final_lb, color=color.green, linewidth=1, style=plot.style_dashed)
 
 // Signals
-buy = ta.crossover(close, st)
-sell = ta.crossunder(close, st)
+buy_sig = ta.crossover(close, st)
+sell_sig = ta.crossunder(close, st)
 
-plotshape(buy, title="Buy Signal", shape=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), text="BUY", textcolor=color.white, size=size.small)
-plotshape(sell, title="Sell Signal", shape=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), text="SELL", textcolor=color.white, size=size.small)
+plotshape(buy_sig, shape=shape.labelup, location=location.belowbar, color=color.green, text="BUY")
+plotshape(sell_sig, shape=shape.labeldown, location=location.abovebar, color=color.red, text="SELL")
 
-// Alerts
-alertcondition(buy, title="Supertrend Buy Signal", message="Buy Signal Generated")
-alertcondition(sell, title="Supertrend Sell Signal", message="Sell Signal Generated")
+alertcondition(buy_sig, title="Buy", message="Supertrend Buy Signal")
+alertcondition(sell_sig, title="Sell", message="Supertrend Sell Signal")
