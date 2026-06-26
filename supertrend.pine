@@ -1,53 +1,47 @@
 //@version=5
-indicator("Supertrend Indicator", shorttitle="ST", overlay=true)
+indicator("Supertrend", overlay=true)
 
-// Input Parameters
-len = input.int(10, minval=1)
+length = input.int(10, minval=1)
 mult = input.float(3.0, minval=0.1)
 
-// Calculate ATR
+hl = (high + low) / 2
 tr = math.max(high - low, math.max(math.abs(high - close[1]), math.abs(low - close[1])))
-atr_val = ta.sma(tr, len)
+atr = ta.sma(tr, length)
 
-// Calculate hl2
-hl2 = (high + low) / 2
+// Define all variables before use
+var float ub = na
+var float lb = na
+var float st = na
+var int trend = na
 
-// Calculate bands
-basic_ub = hl2 + mult * atr_val
-basic_lb = hl2 - mult * atr_val
+ub = hl + mult * atr
+lb = hl - mult * atr
 
-// Initialize final bands on first bar
-final_ub = na
-final_lb = na
-
-if barstate.isfirst
-    final_ub := basic_ub
-    final_lb := basic_lb
+if na(ub[1])
+    ub := ub
 else
-    final_ub := basic_ub < final_ub[1] or close[1] > final_ub[1] ? basic_ub : final_ub[1]
-    final_lb := basic_lb > final_lb[1] or close[1] < final_lb[1] ? basic_lb : final_lb[1]
+    ub := ub < ub[1] or close[1] > ub[1] ? ub : ub[1]
 
-// Supertrend calculation
-st = na
-if barstate.isfirst
-    st := hl2
+if na(lb[1])
+    lb := lb
 else
-    if st[1] == final_ub[1]
-        st := close <= final_ub[1] ? final_ub : final_lb
-    else
-        st := close >= final_lb[1] ? final_lb : final_ub
+    lb := lb > lb[1] or close[1] < lb[1] ? lb : lb[1]
 
-// Plot
-plot(st, color=st > hl2 ? color.red : color.green, linewidth=2)
-plot(final_ub, color=color.red, linewidth=1, style=plot.style_dashed)
-plot(final_lb, color=color.green, linewidth=1, style=plot.style_dashed)
+if na(st[1])
+    st := hl
+else
+    trend := st[1] == ub[1] ? 1 : -1
+    st := trend == 1 ? (close <= ub[1] ? ub : lb) : (close >= lb[1] ? lb : ub)
 
-// Signals
-buy_sig = ta.crossover(close, st)
-sell_sig = ta.crossunder(close, st)
+plot(st, "Supertrend", color=st > hl ? color.red : color.green, linewidth=2)
+plot(ub, "Upper Band", color=color.red, linewidth=1, style=plot.style_dashed)
+plot(lb, "Lower Band", color=color.green, linewidth=1, style=plot.style_dashed)
 
-plotshape(buy_sig, shape=shape.labelup, location=location.belowbar, color=color.green, text="BUY")
-plotshape(sell_sig, shape=shape.labeldown, location=location.abovebar, color=color.red, text="SELL")
+buy = ta.crossover(close, st)
+sell = ta.crossunder(close, st)
 
-alertcondition(buy_sig, title="Buy", message="Supertrend Buy Signal")
-alertcondition(sell_sig, title="Sell", message="Supertrend Sell Signal")
+plotshape(buy, "Buy", shape.labelup, location.belowbar, color.green, text="BUY")
+plotshape(sell, "Sell", shape.labeldown, location.abovebar, color.red, text="SELL")
+
+alertcondition(buy, title="Buy Signal", message="Supertrend Buy")
+alertcondition(sell, title="Sell Signal", message="Supertrend Sell")
