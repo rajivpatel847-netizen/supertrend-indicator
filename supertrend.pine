@@ -1,9 +1,9 @@
 //@version=5
 indicator("Supertrend Indicator - Indian Stock Market", shorttitle="Supertrend", overlay=true)
 
-// Input Parameters
-length = input(10, "Period", minval=1)
-multiplier = input(3.0, "Multiplier", minval=0.1)
+// Input Parameters - FIXED VERSION
+length = input.int(10, "Period", minval=1, maxval=50)
+multiplier = input.float(3.0, "Multiplier", minval=0.1, maxval=10.0)
 
 // Calculate ATR (Average True Range)
 high_low = high - low
