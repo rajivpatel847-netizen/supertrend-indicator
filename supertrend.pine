@@ -1,39 +1,31 @@
 //@version=5
-indicator("Supertrend", shorttitle="ST", overlay=true)
+indicator("Supertrend", overlay=true)
 
-// Input parameters
 len = input.int(10, minval=1)
 mult = input.float(3.0, minval=0.1)
 
-// Calculate basic components
 hl = (high + low) / 2.0
 tr = math.max(high - low, math.max(math.abs(high - close[1]), math.abs(low - close[1])))
 atr_val = ta.sma(tr, len)
 
-// Calculate basic bands
 basic_ub = hl + mult * atr_val
 basic_lb = hl - mult * atr_val
 
-// Final upper band
-final_ub = na
+var float final_ub = na
 final_ub := basic_ub < nz(final_ub[1], basic_ub) or close[1] > nz(final_ub[1], basic_ub) ? basic_ub : nz(final_ub[1], basic_ub)
 
-// Final lower band  
-final_lb = na
+var float final_lb = na
 final_lb := basic_lb > nz(final_lb[1], basic_lb) or close[1] < nz(final_lb[1], basic_lb) ? basic_lb : nz(final_lb[1], basic_lb)
 
-// Supertrend
-supertrend = na
+var float supertrend = na
 supertrend := nz(supertrend[1], hl) == nz(final_ub[1], final_ub) ? close <= nz(final_ub[1], final_ub) ? nz(final_ub[1], final_ub) : nz(final_lb[1], final_lb) : close >= nz(final_lb[1], final_lb) ? nz(final_lb[1], final_lb) : nz(final_ub[1], final_ub)
 
-// Buy and Sell signals
 buy = ta.crossover(close, supertrend)
 sell = ta.crossunder(close, supertrend)
 
-// Plot
-plot(supertrend, "Supertrend", color=supertrend > hl ? color.red : color.green, linewidth=2)
-plot(final_ub, "Upper", color=color.red, linewidth=1, style=plot.style_dashed)
-plot(final_lb, "Lower", color=color.green, linewidth=1, style=plot.style_dashed)
+plot(supertrend, "ST", color=supertrend > hl ? color.red : color.green, linewidth=2)
+plot(final_ub, "UB", color=color.red, linewidth=1, style=plot.style_dashed)
+plot(final_lb, "LB", color=color.green, linewidth=1, style=plot.style_dashed)
 
 plotshape(buy, "Buy", shape.labelup, location.belowbar, color.green, text="BUY")
 plotshape(sell, "Sell", shape.labeldown, location.abovebar, color.red, text="SELL")
